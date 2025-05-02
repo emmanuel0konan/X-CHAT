@@ -1,0 +1,36 @@
+name: flutter_application_testo
+description: "A new Flutter project."
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: ^3.7.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  firebase_core: ^3.13.0
+  firebase_auth: ^5.5.2
+  firebase_cloud_firestore: ^5.4.4
+  firebase: ^9.0.3
+  cloud_firestore: ^5.6.6
+  google_sign_in: ^6.3.0
+  flutter_signin_button: ^2.0.0
+  google_fonts: ^4.0.4
+  logger: ^2.5.0
+  flutter_svg: ^2.0.9
+  firebase_messaging: ^15.2.5
+  image_picker: ^1.1.2
+  file_picker: ^10.1.2
+  intl: ^0.19.0
+  cloudinary_public: ^0.23.1
+  onesignal_flutter: ^5.1.2
+  http: ^0.13.6 
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
