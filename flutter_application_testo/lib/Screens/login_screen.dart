@@ -19,7 +19,7 @@ class LoginScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.white,
         title: Text(
-          "Sign In",
+          "Se connecter",
           style: GoogleFonts.poppins(
             color: Colors.black,
             fontWeight: FontWeight.bold,
@@ -37,7 +37,7 @@ class LoginScreen extends StatelessWidget {
                 children: [
                   const SizedBox(height: 16),
                   Text(
-                    "Welcome Back",
+                    "Bon retour ",
                     style: GoogleFonts.poppins(
                       color: Colors.black,
                       fontSize: 24,
@@ -46,7 +46,7 @@ class LoginScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    "Sign in with your email and password\nor continue with social media",
+                    "Connectez vous avec votre mail et votre mot de passe",
                     textAlign: TextAlign.center,
                     style: GoogleFonts.poppins(color: const Color(0xFF757575)),
                   ),
@@ -60,7 +60,7 @@ class LoginScreen extends StatelessWidget {
                           keyboardType: TextInputType.emailAddress,
                           textInputAction: TextInputAction.next,
                           decoration: InputDecoration(
-                            hintText: "Enter your email",
+                            hintText: "Entrer  votre email",
                             labelText: "Email",
                             floatingLabelBehavior: FloatingLabelBehavior.always,
                             hintStyle: const TextStyle(color: Color(0xFF757575)),
@@ -79,11 +79,11 @@ class LoginScreen extends StatelessWidget {
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return 'Please enter an email';
+                              return 'email obligatoire';
                             }
                             final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+$');
                             if (!emailRegex.hasMatch(value)) {
-                              return 'Please enter a valid email address';
+                              return 'Entrer un email valide';
                             }
                             return null;
                           },
@@ -94,8 +94,8 @@ class LoginScreen extends StatelessWidget {
                             controller: passwordController,
                             obscureText: true,
                             decoration: InputDecoration(
-                              hintText: "Enter your password",
-                              labelText: "Password",
+                              hintText: "Entrer votre mot de passe",
+                              labelText: "Mot de passe",
                               floatingLabelBehavior: FloatingLabelBehavior.always,
                               hintStyle: const TextStyle(color: Color(0xFF757575)),
                               contentPadding: const EdgeInsets.symmetric(
@@ -113,7 +113,7 @@ class LoginScreen extends StatelessWidget {
                             ),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
-                                return 'Please enter a password';
+                                return 'Mot de passe obligatoire';
                               }
                               return null;
                             },
@@ -141,7 +141,7 @@ class LoginScreen extends StatelessWidget {
                                     behavior: SnackBarBehavior.floating,
                                     padding: const EdgeInsets.all(10.0),
                                     content: Text(
-                                      'Something went wrong. Please try again.',
+                                      'quelques choses s es mal passé.',
                                       style: GoogleFonts.poppins(
                                         fontSize: 16.0,
                                         color: Colors.red,
@@ -163,7 +163,7 @@ class LoginScreen extends StatelessWidget {
                             ),
                           ),
                           child: Text(
-                            "Continue",
+                            "Continuer",
                             style: GoogleFonts.poppins(
                               fontWeight: FontWeight.bold,
                             ),
@@ -204,7 +204,7 @@ class LoginScreen extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        "Don't have an account? ",
+                        "Vous n'avez pas de compte? ",
                         style: GoogleFonts.poppins(
                           color: const Color(0xFF757575),
                         ),
@@ -214,7 +214,7 @@ class LoginScreen extends StatelessWidget {
                           Navigator.pushNamed(context, '/signup');
                         },
                         child: Text(
-                          "Sign Up",
+                          "Inscivez vous",
                           style: GoogleFonts.poppins(
                             color: const Color(0xFFFF7643),
                             fontWeight: FontWeight.bold,

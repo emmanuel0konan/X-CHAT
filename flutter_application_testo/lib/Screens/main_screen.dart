@@ -38,9 +38,9 @@ class _MainScreenState extends State<MainScreen> {
         selectedItemColor: Colors.black, // icônes sélectionnées
         unselectedItemColor: Colors.blue, // icônes non sélectionnées
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Search'),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Accueil'),
+          BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Recherche'),
+          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'profile'),
         ],
       ),
     );

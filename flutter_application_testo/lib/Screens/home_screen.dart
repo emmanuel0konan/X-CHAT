@@ -31,10 +31,6 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Text("X-CHAT"),
         actions: [
           IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () {},
-          ),
-          IconButton(
             icon: const Icon(
               Icons.logout,
               color: Colors.white,
@@ -63,7 +59,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       _showRecent = true;
                     });
                   },
-                  text: "Recent Message",
+                  text: "Messages Recents",
                   isFilled: _showRecent,
                 ),
                 const SizedBox(width: 16.0),

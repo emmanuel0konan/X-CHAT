@@ -23,7 +23,7 @@ class SignupScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.white,
         title: Text(
-          "Sign Up",
+          "Inscription",
           style: GoogleFonts.poppins(
             color: Colors.black,
             fontWeight: FontWeight.bold,
@@ -43,7 +43,7 @@ class SignupScreen extends StatelessWidget {
                   children: [
                     const SizedBox(height: 16),
                     Text(
-                      "Register Account",
+                      "Créer un compte =",
                       style: GoogleFonts.poppins(
                         color: Colors.black,
                         fontSize: 24,
@@ -52,7 +52,7 @@ class SignupScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      "Complete your details or continue \nwith social media",
+                      "Entrez vos informations pour continuer",
                       textAlign: TextAlign.center,
                       style: GoogleFonts.poppins(color: const Color(0xFF757575)),
                     ),
@@ -63,7 +63,7 @@ class SignupScreen extends StatelessWidget {
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.next,
                       decoration: InputDecoration(
-                        hintText: "Enter your email",
+                        hintText: "Entrer votre email",
                         labelText: "Email",
                         floatingLabelBehavior: FloatingLabelBehavior.always,
                         hintStyle: GoogleFonts.poppins(color: const Color(0xFF757575)),
@@ -80,11 +80,11 @@ class SignupScreen extends StatelessWidget {
                       style: GoogleFonts.poppins(color: Colors.black),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please enter an email';
+                          return 'Mail obligatoire';
                         }
                         final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+$');
                         if (!emailRegex.hasMatch(value)) {
-                          return 'Please enter a valid email address';
+                          return 'Entrer un mail valid ';
                         }
                         return null;
                       },
@@ -96,7 +96,7 @@ class SignupScreen extends StatelessWidget {
                       obscureText: true,
                       textInputAction: TextInputAction.next,
                       decoration: InputDecoration(
-                        hintText: "Enter your password",
+                        hintText: "Entrer votre mot de passe",
                         labelText: "Password",
                         floatingLabelBehavior: FloatingLabelBehavior.always,
                         hintStyle: GoogleFonts.poppins(color: const Color(0xFF757575)),
@@ -113,10 +113,10 @@ class SignupScreen extends StatelessWidget {
                       style: GoogleFonts.poppins(color: Colors.black),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please enter a password';
+                          return 'Mot de passe obligatoire';
                         }
                         if (value.length < 6) {
-                          return 'Password must be at least 6 characters long';
+                          return 'Au moins 6 caractères';
                         }
                         return null;
                       },
@@ -127,8 +127,8 @@ class SignupScreen extends StatelessWidget {
                       controller: confirmPasswordController,
                       obscureText: true,
                       decoration: InputDecoration(
-                        hintText: "Re-enter your password",
-                        labelText: "Confirm Password",
+                        hintText: "Entrez votre mot de passe  Encore",
+                        labelText: "Confirmation de mot de passe",
                         floatingLabelBehavior: FloatingLabelBehavior.always,
                         hintStyle: GoogleFonts.poppins(color: const Color(0xFF757575)),
                         contentPadding: const EdgeInsets.symmetric(
@@ -144,10 +144,10 @@ class SignupScreen extends StatelessWidget {
                       style: GoogleFonts.poppins(color: Colors.black),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please confirm your password';
+                          return 'Confirmer votre Mot de passe';
                         }
                         if (value != passwordController.text) {
-                          return 'Passwords do not match';
+                          return 'Les mots de passe ne correspondent pas';
                         }
                         return null;
                       },
@@ -173,7 +173,7 @@ class SignupScreen extends StatelessWidget {
                                     behavior: SnackBarBehavior.floating,
                                     padding: const EdgeInsets.all(10.0),
                                     content: Text(
-                                      'Sign up successful!',
+                                      'Inscription reussie!',
                                       style: GoogleFonts.poppins(
                                         fontSize: 16.0,
                                         fontWeight: FontWeight.bold,
@@ -193,7 +193,7 @@ class SignupScreen extends StatelessWidget {
                                   behavior: SnackBarBehavior.floating,
                                   padding: const EdgeInsets.all(10.0),
                                   content: Text(
-                                    'Something went wrong. Please try again.',
+                                    'Quelques choses n a pas marché .',
                                     style: GoogleFonts.poppins(
                                       fontSize: 16.0,
                                       color: Colors.white,
@@ -217,7 +217,7 @@ class SignupScreen extends StatelessWidget {
                         child: Padding(
                           padding: const EdgeInsets.all(15.0),
                           child: Text(
-                            'Continue',
+                            'Continuer',
                             style: GoogleFonts.poppins(
                               fontSize: 16.0,
                               fontWeight: FontWeight.bold,
@@ -260,7 +260,7 @@ class SignupScreen extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: <Widget>[
                         Text(
-                          "Already have an Account?",
+                          "Vous avez dejà un compte ?",
                           style: GoogleFonts.poppins(
                             fontSize: 14.0,
                             fontWeight: FontWeight.w500,
@@ -275,7 +275,7 @@ class SignupScreen extends StatelessWidget {
                             Navigator.pushNamed(context, '/login');
                           },
                           child: Text(
-                            "Login",
+                            "Se connecter",
                             style: GoogleFonts.poppins(
                               fontSize: 16.0,
                               fontWeight: FontWeight.bold,
@@ -286,13 +286,6 @@ class SignupScreen extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    Text(
-                      "By continuing your confirm that you agree \nwith our Term and Condition",
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(
-                        color: const Color(0xFF757575),
-                      ),
-                    ),
                     const SizedBox(height: 16),
                   ],
                 ),

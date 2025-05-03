@@ -153,7 +153,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const Divider(height: 16.0 * 2),
                       Info(
-                        infoKey: "User ID",
+                        infoKey: "Username",
                         info: "@${_userData?['username'] ?? _currentUser!.uid.substring(0, 8)}",
                       ),
                       Info(
