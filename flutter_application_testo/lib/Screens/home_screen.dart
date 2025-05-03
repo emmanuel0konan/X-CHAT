@@ -5,7 +5,7 @@ import 'package:flutter_application_testo/Services/authentification.dart';
 import 'package:flutter_application_testo/Services/message_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:intl/intl.dart'; // Pour formater les dates
+import 'package:intl/intl.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,8 +16,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final MessageService _messageService = MessageService();
-  bool _showRecent = true; // Pour gérer les onglets (Recent/Active)
-  
+  bool _showRecent = true;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -67,15 +67,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   isFilled: _showRecent,
                 ),
                 const SizedBox(width: 16.0),
-                FillOutlineButton(
-                  press: () {
-                    setState(() {
-                      _showRecent = false;
-                    });
-                  },
-                  text: "Active",
-                  isFilled: !_showRecent,
-                ),
               ],
             ),
           ),
@@ -95,7 +86,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Méthode pour afficher la liste des conversations récentes
   Widget _buildConversationsList() {
     return StreamBuilder<QuerySnapshot>(
       stream: _messageService.getChatrooms(),
@@ -112,12 +102,10 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           );
         }
-        
+
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
-            child: CircularProgressIndicator(
-              color: Color(0xFF00BF6D),
-            ),
+            child: CircularProgressIndicator(color: Color(0xFF00BF6D)),
           );
         }
 
@@ -138,84 +126,47 @@ class _HomeScreenState extends State<HomeScreen> {
           itemCount: snapshot.data!.docs.length,
           itemBuilder: (context, index) {
             final chatDoc = snapshot.data!.docs[index];
-            final Map<String, dynamic> data = chatDoc.data() as Map<String, dynamic>;
-            
-            // Récupérer les IDs des participants
-            final List<String> participants = List<String>.from(data['participants']);
-            
-            // Trouver l'ID de l'autre utilisateur (pas celui connecté actuellement)
-            final String currentUserId = FirebaseAuth.instance.currentUser!.uid;
-            final String otherUserId = participants.firstWhere(
-              (id) => id != currentUserId,
-              orElse: () => '',
-            );
-            
-            if (otherUserId.isEmpty) {
-              return const SizedBox(); // Skip this conversation if no other user found
-            }
-            
-            // On utilise un FutureBuilder pour récupérer les informations de l'utilisateur
+            final data = chatDoc.data() as Map<String, dynamic>;
+            final participants = List<String>.from(data['participants']);
+            final currentUserId = FirebaseAuth.instance.currentUser!.uid;
+            final otherUserId = participants.firstWhere((id) => id != currentUserId, orElse: () => '');
+
+            if (otherUserId.isEmpty) return const SizedBox();
+
             return FutureBuilder<DocumentSnapshot>(
               future: FirebaseFirestore.instance.collection('users').doc(otherUserId).get(),
               builder: (context, userSnapshot) {
-                if (userSnapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator(color: Color(0xFF00BF6D)));
-                }
-                
-                if (!userSnapshot.hasData || !userSnapshot.data!.exists) {
-                  return const SizedBox(); // Skip if user data not found
-                }
-                
-                // Récupérer les données de l'utilisateur
-                final userData = userSnapshot.data!.data() as Map<String, dynamic>?;
-                final String otherUserEmail = userData?['email'] ?? 'Utilisateur inconnu';
-                
-                // Formatage du nom d'utilisateur
-                final String username = otherUserEmail.split('@')[0];
-                final String displayName = username[0].toUpperCase() + 
-                            username.substring(1).toLowerCase();
-                
-                // Initiales pour l'avatar
-                final String avatarText = otherUserEmail[0].toUpperCase() + 
-                            (otherUserEmail.split('@')[1].isNotEmpty ? 
-                            otherUserEmail.split('@')[1][0].toUpperCase() : '');
-                
-                // Récupérer le dernier message
-                final String lastMessage = data['lastMessage'] ?? '';
-                
-                // Formater la date du dernier message
-                String formattedTime = '';
+                if (!userSnapshot.hasData || !userSnapshot.data!.exists) return const SizedBox();
+
+                final userData = userSnapshot.data!.data() as Map<String, dynamic>;
+                final email = userData['email'] ?? '';
+                final username = email.split('@')[0];
+                final displayName = username[0].toUpperCase() + username.substring(1);
+                final avatarText = email[0].toUpperCase() + (email.contains('@') ? email.split('@')[1][0].toUpperCase() : '');
+                final photoUrl = userData['photoUrl'];
+                final lastMessage = data['lastMessage'] ?? '';
+                String time = '';
                 if (data['lastMessageTime'] != null) {
-                  final Timestamp timestamp = data['lastMessageTime'] as Timestamp;
-                  final DateTime dateTime = timestamp.toDate();
-                  final DateTime now = DateTime.now();
-                  
-                  if (dateTime.day == now.day && 
-                      dateTime.month == now.month && 
-                      dateTime.year == now.year) {
-                    // Aujourd'hui, on affiche juste l'heure
-                    formattedTime = DateFormat('HH:mm').format(dateTime);
-                  } else {
-                    // Autre jour, on affiche la date
-                    formattedTime = DateFormat('dd/MM/yyyy').format(dateTime);
-                  }
+                  final timestamp = data['lastMessageTime'] as Timestamp;
+                  final dateTime = timestamp.toDate();
+                  final now = DateTime.now();
+                  time = dateTime.day == now.day && dateTime.month == now.month && dateTime.year == now.year
+                      ? DateFormat('HH:mm').format(dateTime)
+                      : DateFormat('dd/MM/yyyy').format(dateTime);
                 }
 
                 return ConversationCard(
                   press: () => Navigator.pushNamed(
                     context,
                     '/chat',
-                    arguments: ChatScreenModel(
-                      userId: otherUserId,
-                      email: otherUserEmail,
-                      userName: username,
-                    ),
+                    arguments: ChatScreenModel(userId: otherUserId, email: email, userName: username),
                   ),
                   name: displayName,
-                  email: otherUserEmail,
+                  email: email,
                   avatarText: avatarText,
+                  photoUrl: photoUrl,
                   lastMessage: lastMessage,
-                  time: formattedTime,
+                  time: time,
                 );
               },
             );
@@ -225,7 +176,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Méthode pour afficher la liste des utilisateurs (tab Active)
   Widget _buildUsersList() {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('users').snapshots(),
@@ -234,50 +184,41 @@ class _HomeScreenState extends State<HomeScreen> {
           return Center(
             child: Text(
               'Une erreur est survenue',
-              style: GoogleFonts.poppins(
-                fontSize: 18.0,
-                color: Colors.red,
-                fontWeight: FontWeight.w500,
-              ),
+              style: GoogleFonts.poppins(fontSize: 18, color: Colors.red),
             ),
           );
         }
-        
+
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(
-            child: CircularProgressIndicator(
-              color: const Color(0xFF00BF6D),
-            ),
-          );
+          return const Center(child: CircularProgressIndicator(color: Color(0xFF00BF6D)));
         }
-        
+
         return ListView(
           children: snapshot.data!.docs
-              .where((doc) =>
-                  doc['email'] != FirebaseAuth.instance.currentUser!.email)
+              .where((doc) => doc['email'] != FirebaseAuth.instance.currentUser!.email)
               .map<Widget>((doc) {
-                final String userEmail = doc['email'];
-                final String username = userEmail.split('@')[0];
-                final String displayName = username[0].toUpperCase() + 
-                            username.substring(1).toLowerCase();
-                final String avatarText = userEmail[0].toUpperCase() + 
-                            userEmail.split('@')[1][0].toUpperCase();
-                    
-                return UserChatCard(
-                  press: () => Navigator.pushNamed(
-                    context,
-                    '/chat',
-                    arguments: ChatScreenModel(
-                      userId: doc['uid'],
-                      email: userEmail,
-                      userName: username,
-                    ),
-                  ),
-                  name: displayName,
+            final userEmail = doc['email'];
+            final username = userEmail.split('@')[0];
+            final displayName = username[0].toUpperCase() + username.substring(1);
+            final avatarText = userEmail[0].toUpperCase() + userEmail.split('@')[1][0].toUpperCase();
+            final photoUrl = doc['photoUrl'];
+
+            return UserChatCard(
+              press: () => Navigator.pushNamed(
+                context,
+                '/chat',
+                arguments: ChatScreenModel(
+                  userId: doc['uid'],
                   email: userEmail,
-                  avatarText: avatarText,
-                );
-              }).toList(),
+                  userName: username,
+                ),
+              ),
+              name: displayName,
+              email: userEmail,
+              avatarText: avatarText,
+              photoUrl: photoUrl,
+            );
+          }).toList(),
         );
       },
     );
@@ -293,6 +234,7 @@ class ConversationCard extends StatelessWidget {
     required this.avatarText,
     required this.lastMessage,
     required this.time,
+    this.photoUrl,
   });
 
   final VoidCallback press;
@@ -301,66 +243,41 @@ class ConversationCard extends StatelessWidget {
   final String avatarText;
   final String lastMessage;
   final String time;
+  final String? photoUrl;
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       onTap: press,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0 * 0.75),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
         child: Row(
           children: [
-            CircleAvatarWithInitials(
-              text: avatarText,
-            ),
+            photoUrl != null && photoUrl!.isNotEmpty
+                ? CircleAvatar(radius: 24, backgroundImage: NetworkImage(photoUrl!))
+                : CircleAvatarWithInitials(text: avatarText),
+            const SizedBox(width: 12),
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          name,
-                          style: GoogleFonts.poppins(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        Text(
-                          time,
-                          style: GoogleFonts.poppins(
-                            fontSize: 12,
-                            color: Colors.black54,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            lastMessage,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.poppins(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w400,
-                              color: Colors.black54,
-                            ),
-                          ),
-                        ),
-                        // Ici on pourrait ajouter un indicateur de message non lu si nécessaire
-                      ],
-                    ),
-                  ],
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(name, style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w500)),
+                      Text(time, style: GoogleFonts.poppins(fontSize: 12, color: Colors.black54)),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    lastMessage,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.poppins(fontSize: 14, color: Colors.black54),
+                  ),
+                ],
               ),
-            ),
+            )
           ],
         ),
       ),
@@ -375,55 +292,42 @@ class UserChatCard extends StatelessWidget {
     required this.name,
     required this.email,
     required this.avatarText,
+    this.photoUrl,
   });
 
   final VoidCallback press;
   final String name;
   final String email;
   final String avatarText;
+  final String? photoUrl;
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       onTap: press,
       child: Padding(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0 * 0.75),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
         child: Row(
           children: [
-            CircleAvatarWithInitials(
-              text: avatarText,
-            ),
+            photoUrl != null && photoUrl!.isNotEmpty
+                ? CircleAvatar(radius: 24, backgroundImage: NetworkImage(photoUrl!))
+                : CircleAvatarWithInitials(text: avatarText),
+            const SizedBox(width: 12),
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      name,
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Opacity(
-                      opacity: 0.64,
-                      child: Text(
-                        email,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.poppins(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(name, style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w500)),
+                  const SizedBox(height: 8),
+                  Text(
+                    email,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.poppins(fontSize: 14, color: Colors.black54),
+                  ),
+                ],
               ),
-            ),
+            )
           ],
         ),
       ),
@@ -432,12 +336,7 @@ class UserChatCard extends StatelessWidget {
 }
 
 class FillOutlineButton extends StatelessWidget {
-  const FillOutlineButton({
-    super.key,
-    this.isFilled = true,
-    required this.press,
-    required this.text,
-  });
+  const FillOutlineButton({super.key, this.isFilled = true, required this.press, required this.text});
 
   final bool isFilled;
   final VoidCallback press;
@@ -465,11 +364,7 @@ class FillOutlineButton extends StatelessWidget {
 }
 
 class CircleAvatarWithInitials extends StatelessWidget {
-  const CircleAvatarWithInitials({
-    super.key,
-    required this.text,
-    this.radius = 24,
-  });
+  const CircleAvatarWithInitials({super.key, required this.text, this.radius = 24});
 
   final String text;
   final double? radius;

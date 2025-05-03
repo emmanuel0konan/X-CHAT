@@ -148,7 +148,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         imageUploadBtnPress: _uploadProfileImage,
                       ),
                       Text(
-                        _userData?['displayName'] ?? _currentUser!.displayName ?? 'Utilisateur',
+                        _userData?['email'] ?? _currentUser!.displayName ?? 'Utilisateur',
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       const Divider(height: 16.0 * 2),
