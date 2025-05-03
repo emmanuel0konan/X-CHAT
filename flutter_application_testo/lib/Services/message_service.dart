@@ -19,23 +19,37 @@ class MessageService extends ChangeNotifier {
     final String currentUserId = _firebaseAuth.currentUser!.uid;
     final String currentUserEmail = _firebaseAuth.currentUser!.email!;
     
-    List<String> chatId = [currentUserId, email];
-    chatId.sort();
+    // Create a chatroom ID by sorting and joining user IDs
+    List<String> participantIds = [currentUserId, email];
+    participantIds.sort();
+    String chatroomId = participantIds.join("*");
     
+    // Create or update the chatroom document
     await _fireStore
-      .collection('chat')
-      .doc(chatId.join("*"))
-      .collection('messages')
-      .add(
-        MessageModel(
-          message: message,
-          receiverId: email,
-          timestamp: timestamp,
-          senderId: currentUserId,
-          senderEmail: currentUserEmail,
-          messageType: 'text',
-        ).toMap(),
-      );
+        .collection('chatrooms')
+        .doc(chatroomId)
+        .set({
+          'lastMessage': message,
+          'lastMessageTime': timestamp,
+          'participants': participantIds,
+          'participantsEmails': [currentUserEmail, email], // Store emails for easier querying
+        }, SetOptions(merge: true));
+    
+    // Add the message to the messages subcollection of the chatroom
+    await _fireStore
+        .collection('chatrooms')
+        .doc(chatroomId)
+        .collection('messages')
+        .add(
+          MessageModel(
+            message: message,
+            receiverId: email,
+            timestamp: timestamp,
+            senderId: currentUserId,
+            senderEmail: currentUserEmail,
+            messageType: 'text',
+          ).toMap(),
+        );
   }
 
   // Send a file message (image, video, audio, document)
@@ -48,73 +62,83 @@ class MessageService extends ChangeNotifier {
     final String currentUserId = _firebaseAuth.currentUser!.uid;
     final String currentUserEmail = _firebaseAuth.currentUser!.email!;
     
-    List<String> chatId = [currentUserId, email];
-    chatId.sort();
-
+    // Create a chatroom ID by sorting and joining user IDs
+    List<String> participantIds = [currentUserId, email];
+    participantIds.sort();
+    String chatroomId = participantIds.join("*");
+    
     try {
-      // If it's an image, upload it to Cloudinary
-      if (fileType == 'image') {
-        // Upload the image to Cloudinary and get the URL
-        String fileUrl = await _cloudinaryService.uploadImage(file);
-        
-        // Store only the URL in Firebase
-        await _fireStore
-          .collection('chat')
-          .doc(chatId.join("*"))
-          .collection('messages')
-          .add({
-            'message': '',
-            'receiverId': email,
-            'timestamp': timestamp,
-            'senderId': currentUserId,
-            'senderEmail': currentUserEmail,
-            'messageType': fileType,
-            'fileUrl': fileUrl,
-          });
-      }
-      // Handle other file types similarly if needed
-      else if (fileType == 'video' || fileType == 'audio' || fileType == 'document') {
-        // For now, upload to Cloudinary as well (you may want different handling)
-        String fileUrl = await _cloudinaryService.uploadImage(file);
+      String fileUrl = '';
+      String fileName = '';
+      Map<String, dynamic> messageData = {
+        'message': '',
+        'receiverId': email,
+        'timestamp': timestamp,
+        'senderId': currentUserId,
+        'senderEmail': currentUserEmail,
+        'messageType': fileType,
+      };
+
+      // Upload file to Cloudinary based on its type
+      if (fileType == 'image' || fileType == 'video' || fileType == 'audio' || fileType == 'document') {
+        fileUrl = await _cloudinaryService.uploadImage(file);
+        messageData['fileUrl'] = fileUrl;
         
         // Get file name for documents
-        String fileName = '';
         if (fileType == 'document') {
           fileName = file.path.split('/').last;
+          messageData['fileName'] = fileName;
         }
-        
-        await _fireStore
-          .collection('chat')
-          .doc(chatId.join("*"))
-          .collection('messages')
-          .add({
-            'message': '',
-            'receiverId': email,
-            'timestamp': timestamp,
-            'senderId': currentUserId,
-            'senderEmail': currentUserEmail,
-            'messageType': fileType,
-            'fileUrl': fileUrl,
-            if (fileName.isNotEmpty) 'fileName': fileName,
-          });
       }
+
+      // Create or update the chatroom document with last message info
+      await _fireStore
+          .collection('chatrooms')
+          .doc(chatroomId)
+          .set({
+            'lastMessage': fileType == 'text' ? messageData['message'] : '$fileType sent',
+            'lastMessageTime': timestamp,
+            'participants': participantIds,
+            'participantsEmails': [currentUserEmail, email],
+          }, SetOptions(merge: true));
+      
+      // Add the message to the messages subcollection
+      await _fireStore
+          .collection('chatrooms')
+          .doc(chatroomId)
+          .collection('messages')
+          .add(messageData);
+          
     } catch (e) {
       throw Exception('Failed to send file message: $e');
     }
   }
 
+  // Get messages for a specific chat
   Stream<QuerySnapshot> getMessages({
     required String currentUserId,
     required String receiverUserId,
   }) {
     List<String> chatId = [currentUserId, receiverUserId];
     chatId.sort();
+    String chatroomId = chatId.join("*");
     
     return _fireStore
-      .collection('chat')
-      .doc(chatId.join("*"))
-      .collection('messages')
-      .orderBy('timestamp', descending: false)
-      .snapshots();
+        .collection('chatrooms')
+        .doc(chatroomId)
+        .collection('messages')
+        .orderBy('timestamp', descending: false)
+        .snapshots();
+  }
+  
+  // Get all chatrooms for the current user
+  Stream<QuerySnapshot> getChatrooms() {
+    final String currentUserId = _firebaseAuth.currentUser!.uid;
+    
+    return _fireStore
+        .collection('chatrooms')
+        .where('participants', arrayContains: currentUserId)
+        .orderBy('lastMessageTime', descending: true)
+        .snapshots();
   }
 }

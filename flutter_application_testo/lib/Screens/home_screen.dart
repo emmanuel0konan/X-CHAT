@@ -2,8 +2,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_testo/Models/chat_screen_argments_model.dart';
 import 'package:flutter_application_testo/Services/authentification.dart';
+import 'package:flutter_application_testo/Services/message_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart'; // Pour formater les dates
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -13,6 +15,9 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final MessageService _messageService = MessageService();
+  bool _showRecent = true; // Pour gérer les onglets (Recent/Active)
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -52,70 +57,30 @@ class _HomeScreenState extends State<HomeScreen> {
             color: const Color(0xFF00BF6D),
             child: Row(
               children: [
-                FillOutlineButton(press: () {}, text: "Recent Message"),
+                FillOutlineButton(
+                  press: () {
+                    setState(() {
+                      _showRecent = true;
+                    });
+                  },
+                  text: "Recent Message",
+                  isFilled: _showRecent,
+                ),
                 const SizedBox(width: 16.0),
                 FillOutlineButton(
-                  press: () {},
+                  press: () {
+                    setState(() {
+                      _showRecent = false;
+                    });
+                  },
                   text: "Active",
-                  isFilled: false,
+                  isFilled: !_showRecent,
                 ),
               ],
             ),
           ),
           Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance.collection('users').snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Text(
-                      'Something went wrong',
-                      style: GoogleFonts.poppins(
-                        fontSize: 18.0,
-                        color: Colors.red,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  );
-                }
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(
-                    child: CircularProgressIndicator(
-                      color: const Color(0xFF00BF6D),
-                    ),
-                  );
-                }
-                
-                return ListView(
-                  children: snapshot.data!.docs
-                      .where((doc) =>
-                          doc['email'] != FirebaseAuth.instance.currentUser!.email)
-                      .map<Widget>((doc) {
-                        final String userEmail = doc['email'];
-                        final String username = userEmail.split('@')[0];
-                        final String displayName = username[0].toUpperCase() + 
-                                    username.substring(1).toLowerCase();
-                        final String avatarText = userEmail[0].toUpperCase() + 
-                                    userEmail.split('@')[1][0].toUpperCase();
-                            
-                        return UserChatCard(
-                          press: () => Navigator.pushNamed(
-                            context,
-                            '/chat',
-                            arguments: ChatScreenModel(
-                              userId: doc['uid'],
-                              email: userEmail,
-                              userName: username,
-                            ),
-                          ),
-                          name: displayName,
-                          email: userEmail,
-                          avatarText: avatarText,
-                        );
-                      }).toList(),
-                );
-              },
-            ),
+            child: _showRecent ? _buildConversationsList() : _buildUsersList(),
           ),
         ],
       ),
@@ -125,6 +90,278 @@ class _HomeScreenState extends State<HomeScreen> {
         child: const Icon(
           Icons.person_add_alt_1,
           color: Colors.white,
+        ),
+      ),
+    );
+  }
+
+  // Méthode pour afficher la liste des conversations récentes
+  Widget _buildConversationsList() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: _messageService.getChatrooms(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(
+            child: Text(
+              'Une erreur est survenue',
+              style: GoogleFonts.poppins(
+                fontSize: 18.0,
+                color: Colors.red,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          );
+        }
+        
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(
+              color: Color(0xFF00BF6D),
+            ),
+          );
+        }
+
+        if (snapshot.data == null || snapshot.data!.docs.isEmpty) {
+          return Center(
+            child: Text(
+              'Aucune conversation',
+              style: GoogleFonts.poppins(
+                fontSize: 18.0,
+                color: Colors.black54,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          );
+        }
+
+        return ListView.builder(
+          itemCount: snapshot.data!.docs.length,
+          itemBuilder: (context, index) {
+            final chatDoc = snapshot.data!.docs[index];
+            final Map<String, dynamic> data = chatDoc.data() as Map<String, dynamic>;
+            
+            // Récupérer les IDs des participants
+            final List<String> participants = List<String>.from(data['participants']);
+            
+            // Trouver l'ID de l'autre utilisateur (pas celui connecté actuellement)
+            final String currentUserId = FirebaseAuth.instance.currentUser!.uid;
+            final String otherUserId = participants.firstWhere(
+              (id) => id != currentUserId,
+              orElse: () => '',
+            );
+            
+            if (otherUserId.isEmpty) {
+              return const SizedBox(); // Skip this conversation if no other user found
+            }
+            
+            // On utilise un FutureBuilder pour récupérer les informations de l'utilisateur
+            return FutureBuilder<DocumentSnapshot>(
+              future: FirebaseFirestore.instance.collection('users').doc(otherUserId).get(),
+              builder: (context, userSnapshot) {
+                if (userSnapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator(color: Color(0xFF00BF6D)));
+                }
+                
+                if (!userSnapshot.hasData || !userSnapshot.data!.exists) {
+                  return const SizedBox(); // Skip if user data not found
+                }
+                
+                // Récupérer les données de l'utilisateur
+                final userData = userSnapshot.data!.data() as Map<String, dynamic>?;
+                final String otherUserEmail = userData?['email'] ?? 'Utilisateur inconnu';
+                
+                // Formatage du nom d'utilisateur
+                final String username = otherUserEmail.split('@')[0];
+                final String displayName = username[0].toUpperCase() + 
+                            username.substring(1).toLowerCase();
+                
+                // Initiales pour l'avatar
+                final String avatarText = otherUserEmail[0].toUpperCase() + 
+                            (otherUserEmail.split('@')[1].isNotEmpty ? 
+                            otherUserEmail.split('@')[1][0].toUpperCase() : '');
+                
+                // Récupérer le dernier message
+                final String lastMessage = data['lastMessage'] ?? '';
+                
+                // Formater la date du dernier message
+                String formattedTime = '';
+                if (data['lastMessageTime'] != null) {
+                  final Timestamp timestamp = data['lastMessageTime'] as Timestamp;
+                  final DateTime dateTime = timestamp.toDate();
+                  final DateTime now = DateTime.now();
+                  
+                  if (dateTime.day == now.day && 
+                      dateTime.month == now.month && 
+                      dateTime.year == now.year) {
+                    // Aujourd'hui, on affiche juste l'heure
+                    formattedTime = DateFormat('HH:mm').format(dateTime);
+                  } else {
+                    // Autre jour, on affiche la date
+                    formattedTime = DateFormat('dd/MM/yyyy').format(dateTime);
+                  }
+                }
+
+                return ConversationCard(
+                  press: () => Navigator.pushNamed(
+                    context,
+                    '/chat',
+                    arguments: ChatScreenModel(
+                      userId: otherUserId,
+                      email: otherUserEmail,
+                      userName: username,
+                    ),
+                  ),
+                  name: displayName,
+                  email: otherUserEmail,
+                  avatarText: avatarText,
+                  lastMessage: lastMessage,
+                  time: formattedTime,
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // Méthode pour afficher la liste des utilisateurs (tab Active)
+  Widget _buildUsersList() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance.collection('users').snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(
+            child: Text(
+              'Une erreur est survenue',
+              style: GoogleFonts.poppins(
+                fontSize: 18.0,
+                color: Colors.red,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          );
+        }
+        
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(
+            child: CircularProgressIndicator(
+              color: const Color(0xFF00BF6D),
+            ),
+          );
+        }
+        
+        return ListView(
+          children: snapshot.data!.docs
+              .where((doc) =>
+                  doc['email'] != FirebaseAuth.instance.currentUser!.email)
+              .map<Widget>((doc) {
+                final String userEmail = doc['email'];
+                final String username = userEmail.split('@')[0];
+                final String displayName = username[0].toUpperCase() + 
+                            username.substring(1).toLowerCase();
+                final String avatarText = userEmail[0].toUpperCase() + 
+                            userEmail.split('@')[1][0].toUpperCase();
+                    
+                return UserChatCard(
+                  press: () => Navigator.pushNamed(
+                    context,
+                    '/chat',
+                    arguments: ChatScreenModel(
+                      userId: doc['uid'],
+                      email: userEmail,
+                      userName: username,
+                    ),
+                  ),
+                  name: displayName,
+                  email: userEmail,
+                  avatarText: avatarText,
+                );
+              }).toList(),
+        );
+      },
+    );
+  }
+}
+
+class ConversationCard extends StatelessWidget {
+  const ConversationCard({
+    super.key,
+    required this.press,
+    required this.name,
+    required this.email,
+    required this.avatarText,
+    required this.lastMessage,
+    required this.time,
+  });
+
+  final VoidCallback press;
+  final String name;
+  final String email;
+  final String avatarText;
+  final String lastMessage;
+  final String time;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: press,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0 * 0.75),
+        child: Row(
+          children: [
+            CircleAvatarWithInitials(
+              text: avatarText,
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          name,
+                          style: GoogleFonts.poppins(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        Text(
+                          time,
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            color: Colors.black54,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            lastMessage,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w400,
+                              color: Colors.black54,
+                            ),
+                          ),
+                        ),
+                        // Ici on pourrait ajouter un indicateur de message non lu si nécessaire
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
